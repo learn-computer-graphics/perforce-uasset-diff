@@ -23,11 +23,11 @@ Then in the “Diff” menu, click on “Add…”
 
 ![p4v edit diff](doc/p4v-edit-diff.png?raw=true)
 
-It will open a window where you will specific the diff behavior. Unreal Engine is embedding python so simply need to point to it to be able to execute scripts. You will also need to copy the path to where you extracted the `srf` folder as you will need it as argument.
+It will open a window where you will specific the diff behavior. Unreal Engine is embedding python so simply need to point to it to be able to execute scripts. You will also need to copy the path to where you extracted the `src` folder as you will need it as argument.
 
 **Extension** : `.uasset`
 
-**Application** :  `YOUR_MAIN_WORKSPACE/Engine/Binaries/ThirdParty/Python3/Win64/python.exe`
+**Application** :  `YOUR_ENGINE_FOLDER/Engine/Binaries/ThirdParty/Python3/Win64/python.exe`
 
 **Arguments** : `YOUR_PATH\src\unreal_diff_uassets.py %1 %2`
 
