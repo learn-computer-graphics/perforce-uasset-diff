@@ -4,11 +4,10 @@
 
 #include "AssetToolsModule.h"
 #include "DiffUtils.h"
-#include "Modules/ModuleManager.h"
 #include "Misc/PackagePath.h"
 #include "Misc/Paths.h"
+#include "HAL/PlatformFileManager.h"
 #include "HAL/IConsoleManager.h"
-#include "UObject/ObjectRedirector.h"
 #include "UObject/UObjectGlobals.h"
 
 #define LOCTEXT_NAMESPACE "FExposeDiffCommandModule"
@@ -17,38 +16,54 @@
 
 namespace ExposeDiffCommand
 {
-	// See SSourceControlReviewEntry::TryBindUAssetDiff()
-	static UObject* GetAssetFromPath(const FString& Path)
+	// Copied from DiffUtils::LoadAssetFromExternalPath()
+	static UObject* LoadAssetFromExternalPath(FString Path)
 	{
-		const FPackagePath AssetPath = FPackagePath::FromLocalPath(Path);
-		if (AssetPath.IsEmpty())
+		FPackagePath PackagePath;
+		if (!FPackagePath::TryFromPackageName(Path, PackagePath))
 		{
-			UE_LOG(LogExec, Warning, TEXT("Failed to find package for %s"), *Path);
+			// copy to the temp directory so it can be loaded properly
+			FString File = FPaths::GetBaseFilename(Path) + TEXT("-");
+			for (const ANSICHAR Char : "#(){}[].")
+			{
+				File.ReplaceCharInline(Char, '-');
+			}
+
+			const FString Extension = TEXT(".") + FPaths::GetExtension(Path);
+			const FString SourcePath = Path;
+			FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*FPaths::DiffDir());
+			Path = FPaths::CreateTempFilename(*FPaths::DiffDir(), *File, *Extension);
+			Path = FPaths::ConvertRelativePathToFull(Path);
+
+			if (!FPlatformFileManager::Get().GetPlatformFile().CopyFile(*Path, *SourcePath))
+			{
+				UE_LOG(LogExec, Warning, TEXT("Failed to Copy %s"), *SourcePath);
+				return nullptr;
+			}
+
+			// load the temp package
+			PackagePath = FPackagePath::FromLocalPath(Path);
+		}
+
+		if (PackagePath.IsEmpty())
+		{
+			UE_LOG(LogExec, Warning, TEXT("Invalid Path: %s"), *Path);
 			return nullptr;
 		}
 
-		UPackage* ReviewFilePkg = DiffUtils::LoadPackageForDiff(AssetPath, {});
-		if (!ReviewFilePkg)
+		if (const UPackage* TempPackage = DiffUtils::LoadPackageForDiff(PackagePath, {}))
 		{
-			UE_LOG(LogExec, Warning, TEXT("Failed to load package for %s"), *Path);
-			return nullptr;
+			if (UObject* Object = TempPackage->FindAssetInPackage())
+			{
+				return Object;
+			}
 		}
 
-		const FString Filename = FPaths::GetBaseFilename(Path);
-		UObject* Result = FindObject<UObject>(ReviewFilePkg, *Filename);
-		if (!Result)
-		{
-			UE_LOG(LogExec, Warning, TEXT("Failed get UObject for %s"), *Filename);
-			return nullptr;
-		}
-
-		if (Result->IsA<UObjectRedirector>())
-		{
-			Result = Cast<UObjectRedirector>(Result)->DestinationObject;
-		}
-		return Result;
+		UE_LOG(LogExec, Warning, TEXT("Failed to load: %s"), *Path);
+		return nullptr;
 	}
 
+	// See UEDiffUtils_Private::RunDiffCommand
 	static FAutoConsoleCommand DiffUAssetCommand(
 		TEXT("diff.uasset"),
 		TEXT("Open the diff view on two uassets to check their changes against one another.")
@@ -61,29 +76,18 @@ namespace ExposeDiffCommand
 					return;
 				}
 
-				UObject* first = GetAssetFromPath(Args[0]);
-				if (!first)
+				UObject* LHS = LoadAssetFromExternalPath(Args[0]);
+				UObject* RHS = LoadAssetFromExternalPath(Args[1]);
+				if (LHS && RHS)
 				{
-					UE_LOG(LogExec, Warning, TEXT("Failed to open %s"), *Args[0]);
-					return;
+					IAssetTools::Get().DiffAssets(LHS, RHS, {}, {});
 				}
-
-				UObject* second = GetAssetFromPath(Args[1]);
-				if (!second)
-				{
-					UE_LOG(LogExec, Warning, TEXT("Failed to open %s"), *Args[1]);
-					return;
-				}
-
-				// Load the asset registry module
-				FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-				AssetToolsModule.Get().DiffAssets(first, second, FRevisionInfo(), FRevisionInfo());
 			}),
-		ECVF_Cheat);
+		ECVF_Default);
 }
 
 #endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FExposeDiffCommandModule, ExposeDiffCommand)
