@@ -1,4 +1,5 @@
 # Launch unreal engine's .uasset diff from perforce
+
 This tool will ask a running instance of Unreal Engine to [show a diff](https://docs.unrealengine.com/5.2/en-US/ue-diff-tool-in-unreal-engine/) between two version of the same asset. This process can be run from Perforce when doing a diff between files.
 
 You should be able to see the diff screen within 1 second after asking for it from P4V.
@@ -7,13 +8,23 @@ You should be able to see the diff screen within 1 second after asking for it fr
 
 ## Setup
 
-### 1. Download the script
-
-Click on the "Code" button and download the .zip of this repository. Only the `src` folder will be needed you can delete the rest.
+Click on the "Code" button and download the .zip of this repository.
 
 ![download](doc/download.png?raw=true)
 
-### 2. Setup P4v
+### 1. Copy the plugin to your Unreal Engine project
+
+**WIP**
+
+### 2. Build your Unreal Project
+
+**WIP**
+
+### 3. (Optional) Test that the `diff.uasset` command works as expected in Unreal
+
+**WIP**
+
+### 4. Setup P4v
 
 In P4v click in “Edit/Preferences”
 
@@ -23,19 +34,19 @@ Then in the “Diff” menu, click on “Add…”
 
 ![p4v edit diff](doc/p4v-edit-diff.png?raw=true)
 
-It will open a window where you will specific the diff behavior. Unreal Engine is embedding python so simply need to point to it to be able to execute scripts. You will also need to copy the path to where you extracted the `src` folder as you will need it as argument.
+It will open a window where you will specific the diff behavior. Unreal Engine is embedding python so simply need to point to it to be able to execute scripts. You will also need to copy the path to where you extracted the `script` folder as you will need it as argument.
 
 **Extension** : `.uasset`
 
 **Application** :  `YOUR_ENGINE_FOLDER/Engine/Binaries/ThirdParty/Python3/Win64/python.exe`
 
-**Arguments** : `YOUR_PATH\src\unreal_diff_uassets.py %1 %2`
+**Arguments** : `YOUR_PATH\script\unreal_diff_uassets.py %1 %2`
 
 → As arguments, it is important to use “\” instead of “/” in the path
 
 ![p4v edit diff](doc/p4v-edit-diff-done.png?raw=true)
 
-### 3. Setup Unreal Engine
+### 5. Enable remote execution in Unreal Engine
 
 First you want to check that the “Python Editor Script Plugin” is enabled in your project
 

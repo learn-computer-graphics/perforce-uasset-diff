@@ -27,4 +27,4 @@ if len(sys.argv) != 3:
 
 arg1 = sys.argv[1].replace("\\", "\\\\")
 arg2 = sys.argv[2].replace("\\", "\\\\")
-execute_command_remote(f"diff {arg1} {arg2}")
+execute_command_remote(f"diff.uasset {arg1} {arg2}")
